@@ -135,14 +135,6 @@ local function run()
           for k = 1, #p2Pos do
             if player.x == p2Pos[k][1] and player.y == p2Pos[k][2] then
               player.alive = false
-              term.setCursorPos(1, 1)
-              print("x:  ", player.x)
-              print("y:  ", player.y)
-              print("p2x:", p2Pos[k][1])
-              print("p2y:", p2Pos[k][2])
-              print("k:  ", k)
-              print("#p2:", #p2Pos)
-              --print("p2p:", textutils.serialize(p2Pos))
               error("Player " .. tostring(i) .. " has died.", 0)
             end
           end
