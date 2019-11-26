@@ -1,6 +1,6 @@
-local debugg = true
+local tArgs = {...}
 
-
+local debugg = false
 local int = require("modules.intMath")
 local listener = require("modules.listener")
 local etc = require("modules.etc")
@@ -9,6 +9,10 @@ local mx, my = term.getSize()
 local players = {}
 local apples = {}
 local wl = 'a'
+
+if tArgs[1] == "debug" then
+  debugg = true
+end
 
 -- returns the position of all snake parts
 local function calcSnakePos(queue, tx, ty)
@@ -74,19 +78,14 @@ local function debug()
     term.write("1234567890123456789012345678901234567890123456789012345678901234567890")
     print()
     for i, player in ipairs(players) do
-      print(" x:", player.x)
-      print(" y:", player.y)
-      print("tx:", player.tx)
-      print("ty:", player.ty)
-      for j, pos in ipairs(player.tailQueue) do
-        print("  qx" .. tostring(j) .. ":", pos)
-      end
+      print("hp:", player.x, player.y)
+      print("tp:", player.tx, player.ty)
+      print("  q:", table.unpack(player.tailQueue))
       print()
 
       local pPos = calcSnakePos(player.tailQueue, player.tx, player.ty)
       for j, pos in ipairs(pPos) do
-        print("  px" .. tostring(j) .. ":", pos[1])
-        print("  py" .. tostring(j) .. ":", pos[2])
+        print("  p" .. tostring(j) .. ":", pos[1], pos[2])
       end
     end
     for i = 1, y do
@@ -105,7 +104,6 @@ local function view()
   while true do
     move() -- move the players based on their direction
     draw() -- redraw the screen
-    debug() -- print debug stuff
     os.queueEvent("tick", players)
     -- queue a tick event with the players inputted
     -- somewhere else can handle the multiplayer part of this
@@ -146,9 +144,11 @@ local function run()
         table.remove(player.tailQueue, 1)
         player.tdir = player.tailQueue[1]
         player.tailQueue[#player.tailQueue + 1] = player.dir
-
+      end
         -- loop through each player and check if we've crashed into them
         -- including ourself
+      for i = 1, #players do
+        local player = players[i]
         for j = 1, #players do
           local player2 = players[j]
           local p2Pos = calcSnakePos(player2.tailQueue, player2.tx, player2.ty)
@@ -157,24 +157,13 @@ local function run()
           for k = 1, #p2Pos do
             if player.x == p2Pos[k][1] and player.y == p2Pos[k][2] then
               player.alive = false
-              term.setCursorPos(1, 1)
-              print("x:  ", player.x)
-              print("y:  ", player.y)
-              print("p2x:", player2.x)
-              print("p2y:", player2.y)
-              print("c x:", p2Pos[k][1])
-              print("c y:", p2Pos[k][2])
-              print("k:  ", k)
-              print("#p2:", #p2Pos)
-              for o = 1, #p2Pos do
-                print("p2" .. tostring(o) .. ":", p2Pos[o][1], p2Pos[o][2])
-              end
               error("Player " .. tostring(i) .. " has died. (by player " .. tostring(j) .. ")", 0)
             end
           end
         end
       end
     end
+    debug() -- print debug stuff
   end
 end
 
