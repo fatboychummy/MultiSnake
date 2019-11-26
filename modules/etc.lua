@@ -44,4 +44,25 @@ function funcs.getInputInt(range, range2)
   end
 end
 
+function funcs.moveCursor(dir)
+  local x, y = term.getCursorPos()
+  x, y = funcs.sim(x, y, dir)
+
+  term.setCursorPos(x, y)
+end
+
+function funcs.sim(x, y, dir)
+  if dir == 0 then -- go up 1
+    y = y - 1
+  elseif dir == 2 then -- go down 1
+    y = y + 1
+  elseif dir == 1 then -- go right 1
+    x = x + 1
+  elseif dir == 3 then -- go left 1
+    x = x - 1
+  end
+
+  return x, y
+end
+
 return funcs
