@@ -11,7 +11,6 @@ class.maxPlayers = 2
 function class.listener()
 
   local _, numPlayers = os.pullEvent("start")
-  print("LISTENER GO")
   while true do
     local ev = {os.pullEvent("key")}
     -- wasd
