@@ -5,6 +5,7 @@ local int = require("modules.intMath")
 local listener = require("modules.listener")
 local etc = require("modules.etc")
 
+local tickSpeed = 0.5
 local mx, my = term.getSize()
 local players = {}
 local apples = {}
@@ -42,11 +43,18 @@ end
 
 -- loops through each player and draws their player
 local function draw()
-  -- TODO: Draw apples
-
   term.setBackgroundColor(colors.black)
   term.clear()
 
+  -- Draw the apples
+  for i = 1, #apples do
+    local c = apples[i]
+    term.setCursorPos(c[1], c[2])
+    term.setBackgroundColor(colors.red)
+    io.write(' ')
+  end
+
+  -- draw players and their tails
   for i = 1, #players do
     local player = players[i]
     -- draw head
@@ -56,7 +64,7 @@ local function draw()
 
     -- draw tail
     term.setCursorPos(player.tx, player.ty)
-    term.setBackgroundColor(colors.red)
+    term.setBackgroundColor(colors.orange)
     io.write(' ')
 
     -- draw snek
@@ -107,7 +115,57 @@ local function view()
     os.queueEvent("tick", players)
     -- queue a tick event with the players inputted
     -- somewhere else can handle the multiplayer part of this
-    os.sleep(0.5)
+    os.sleep(tickSpeed)
+  end
+end
+
+-- returns a random position for an apple to be positioned
+local function app()
+  return {math.random(1, mx), math.random(1, my)}
+end
+
+-- generates apples if needed
+local function genApples()
+  if #apples < #players then
+    apples[#apples + 1] = app()
+  end
+end
+
+-- checks if a player's head is on an apple
+local function checkApples()
+
+end
+
+local function updateDirection()
+  for i = 1, #players do
+    -- loop through each player, update their last direction
+    local player = players[i]
+    player.ldir = player.dir
+
+    -- loop through each player, check the tailQueue
+    table.remove(player.tailQueue, 1)
+    player.tdir = player.tailQueue[1]
+    player.tailQueue[#player.tailQueue + 1] = player.dir
+  end
+end
+
+local function checkCrashes()
+  -- loop through each player and check if we've crashed into them
+  -- including ourself
+  for i = 1, #players do
+    local player = players[i]
+    for j = 1, #players do
+      local player2 = players[j]
+      local p2Pos = calcSnakePos(player2.tailQueue, player2.tx, player2.ty)
+
+      -- for each position, check if the player's head is on this space
+      for k = 1, #p2Pos do
+        if player.x == p2Pos[k][1] and player.y == p2Pos[k][2] then
+          player.alive = false
+          error("Player " .. tostring(i) .. " has died. (by player " .. tostring(j) .. ")", 0)
+        end
+      end
+    end
   end
 end
 
@@ -135,33 +193,12 @@ local function run()
         players[player].dir = dir -- allow the turn to complete
       end
     elseif ev[1] == "tick" then
-      for i = 1, #players do
-        -- loop through each player, update their last direction
-        local player = players[i]
-        player.ldir = player.dir
+      checkApples()
+      genApples()
 
-        -- loop through each player, check the tailQueue
-        table.remove(player.tailQueue, 1)
-        player.tdir = player.tailQueue[1]
-        player.tailQueue[#player.tailQueue + 1] = player.dir
-      end
-        -- loop through each player and check if we've crashed into them
-        -- including ourself
-      for i = 1, #players do
-        local player = players[i]
-        for j = 1, #players do
-          local player2 = players[j]
-          local p2Pos = calcSnakePos(player2.tailQueue, player2.tx, player2.ty)
+      updateDirection()
 
-          -- for each position, check if the player's head is on this space
-          for k = 1, #p2Pos do
-            if player.x == p2Pos[k][1] and player.y == p2Pos[k][2] then
-              player.alive = false
-              error("Player " .. tostring(i) .. " has died. (by player " .. tostring(j) .. ")", 0)
-            end
-          end
-        end
-      end
+      checkCrashes()
     end
     debug() -- print debug stuff
   end
