@@ -5,7 +5,7 @@ local int = require("modules.intMath")
 local listener = require("modules.listener")
 local etc = require("modules.etc")
 
-local tickSpeed = 0.5
+local tickSpeed = 0.2
 local mx, my = term.getSize()
 local players = {}
 local apples = {}
@@ -25,20 +25,6 @@ local function calcSnakePos(queue, tx, ty)
   end
 
   return ret
-end
-
--- loops through each player and moves them based on what direction they are
--- facing
-local function move()
-  print("MOVE")
-  for i = 1, #players do
-    local player = players[i]
-    -- head
-    player.x, player.y = etc.sim(player.x, player.y, player.dir)
-
-    -- tail
-    player.tx, player.ty = etc.sim(player.tx, player.ty, player.tdir)
-  end
 end
 
 -- loops through each player and draws their player
@@ -103,6 +89,38 @@ local function debug()
   end
 end
 
+local function updateDirection()
+  for i = 1, #players do
+    -- loop through each player, update their last direction
+    local player = players[i]
+    player.ldir = player.dir
+
+    -- loop through each player, check the tailQueue
+    if player.lengthLeft == 0 then
+      table.remove(player.tailQueue, 1)
+      player.tdir = player.tailQueue[1]
+    end
+    player.tailQueue[#player.tailQueue + 1] = player.dir
+  end
+end
+
+-- loops through each player and moves them based on what direction they are
+-- facing
+local function move()
+  print("MOVE")
+  for i = 1, #players do
+    local player = players[i]
+    -- head
+    player.x, player.y = etc.sim(player.x, player.y, player.dir)
+
+    -- tail
+    if player.lengthLeft == 0 then
+      player.tx, player.ty = etc.sim(player.tx, player.ty, player.tdir)
+    end
+  end
+
+end
+
 -- ticks the game
 local function view()
   -- wait for the game to start
@@ -112,6 +130,7 @@ local function view()
   while true do
     move() -- move the players based on their direction
     draw() -- redraw the screen
+    updateDirection()
     os.queueEvent("tick", players)
     -- queue a tick event with the players inputted
     -- somewhere else can handle the multiplayer part of this
@@ -133,19 +152,16 @@ end
 
 -- checks if a player's head is on an apple
 local function checkApples()
-
-end
-
-local function updateDirection()
   for i = 1, #players do
-    -- loop through each player, update their last direction
     local player = players[i]
-    player.ldir = player.dir
 
-    -- loop through each player, check the tailQueue
-    table.remove(player.tailQueue, 1)
-    player.tdir = player.tailQueue[1]
-    player.tailQueue[#player.tailQueue + 1] = player.dir
+    for j = 1, #apples do
+      local apple = apples[j]
+
+      if player.x == apple[1] and player.y == apple[2] then
+        player.lengthLeft = player.lengthLeft + 2
+      end
+    end
   end
 end
 
@@ -165,6 +181,15 @@ local function checkCrashes()
           error("Player " .. tostring(i) .. " has died. (by player " .. tostring(j) .. ")", 0)
         end
       end
+    end
+  end
+end
+
+local function checkPlayers()
+  for i = 1, #players do
+    local player = players[i]
+    if player.lengthLeft > 0 then
+      player.lengthLeft = player.lengthLeft - 1
     end
   end
 end
@@ -194,9 +219,8 @@ local function run()
       end
     elseif ev[1] == "tick" then
       checkApples()
+      checkPlayers()
       genApples()
-
-      updateDirection()
 
       checkCrashes()
     end
@@ -221,7 +245,8 @@ local function main()
       ty = int.div(my, 2) + 4,
       tdir = 0,
       tailQueue = {0, 0, 0, 0},
-      alive = true
+      alive = true,
+      lengthLeft = 0
     }
   end
 
